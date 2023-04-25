@@ -1,3 +1,5 @@
+import { loginSchema } from "../schema/userSchema.js"
+
 const userRoute = async (fastify, options) => {
     fastify.get('/test',
         {
@@ -18,17 +20,14 @@ const userRoute = async (fastify, options) => {
         }
     })
 
-    fastify.post('/login', async (request, reply) => {
+    fastify.post('/login', { schema: loginSchema }, async (request, reply) => {
         try {
             const { username, password } = request.body
             const userLogged = await fastify.userService.login(username, password)
 
-            const token = fastify.jwt.sign({sub: userLogged._id, name: userLogged.name, role: userLogged.role }, fastify.config.JWT_SECRET, {
-                algorithm: "HS256",
-                expiresIn: 3600
-            })
+            const token = fastify.jwt.sign({ id: userLogged._id }, fastify.config.JWT_SECRET)
 
-            reply.send({message: "Loggin success", user: userLogged, accessToken: token})
+            reply.code(200).send({ user: userLogged, accessToken: token })
         } catch(err) {
             fastify.log.info(err)
             reply.send(err)
@@ -36,17 +35,17 @@ const userRoute = async (fastify, options) => {
     })
 
     fastify.get('/me', {
-            preHandler: [fastify.authenticate]
-        },
-        async (request, reply) => {
-            const authorization = request.headers.authorization
-            const jwtToken = authorization.split(' ')[1]
-
-            const decoded = fastify.jwt.verify(jwtToken)
-            const user = await fastify.userService.getUserInfo(decoded.sub)
-
+        onRequest: [fastify.authenticate]
+    },
+    async (request, reply) => {
+        try {
+            const userId = request.user.id;
+            const user = await fastify.userService.getUserInfo(userId)
             reply.send({user})
-        },
+        } catch (err) {
+            reply.code(500).send({error: err})
+        }
+    },
     )
 }
 

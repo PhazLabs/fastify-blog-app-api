@@ -2,10 +2,11 @@ import Fastify from "fastify";
 import fastifyAutoload from "@fastify/autoload";
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import auth from "./auth/auth-jwt.js";
 import { connect } from './database/database.js'
 import UserService from "./services/userService.js";
+import ArticleService from "./services/articleService.js";
 import fastifyPlugin from "fastify-plugin";
+import swagger from "./config/docs/swagger.js";
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -37,9 +38,11 @@ fastify.register(fastifyAutoload, {
 async function decorateFunctions(fastify) {
     const userService = new UserService(fastify)
     fastify.decorate('userService', userService)
+
+    const articleService = new ArticleService(fastify)
+    fastify.decorate('articleService', articleService)
 }
 
-fastify.register(auth)
 fastify.register(fastifyPlugin(decorateFunctions))
 
 //Autoload services
@@ -47,6 +50,10 @@ fastify.register(fastifyAutoload, {
     dir: join(__dirname, 'routes'),
     options: { prefix: '/api/v1' }
 })
+
+//Swagger
+fastify.register(swagger)
+await fastify.ready()
 
 const start = async (port) => {
     try {
@@ -61,5 +68,5 @@ const start = async (port) => {
 fastify.ready(async (err) => {
     if (err) console.log(err)
     const port = fastify.config.PORT
-    start(port)    
+    start(port)
 })

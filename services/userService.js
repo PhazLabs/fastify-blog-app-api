@@ -31,9 +31,9 @@ class UserService {
 
     async signup(userData) {
         try {
-            const { username, firstName, lastName, email, password } = userData 
+            const { username, firstName, lastName, email, password, role } = userData 
             const hashPassword = await this.app.bcrypt.hash(password)
-            const newUser = new User({ username, firstName, lastName, email, password: hashPassword })
+            const newUser = new User({ username, firstName, lastName, email, password: hashPassword, role: !role ? 'user' : role })
             await newUser.save()
             
             return newUser
@@ -55,6 +55,8 @@ class UserService {
             throw err
         }
     }
+
+    
 }
 
 export default UserService
